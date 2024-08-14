@@ -33,9 +33,11 @@ const Start = ({ navigation }) => {
             {backgroundColorList.map((color, index) => (
               <TouchableOpacity
                 key={index}
+                accessible={true}
+                accessibilityLabel="Select background color"
+                accessibilityHint="Allows you to choose the background color for the chat screen"
                 style={{ width: 50, height: 50, backgroundColor: color, borderRadius: 25 }}
                 onPress={() => setBackgroundColor(color)}
-
               />
             ))}
 
@@ -43,8 +45,12 @@ const Start = ({ navigation }) => {
         </View>
         <TouchableOpacity
           title="Go to Chat"
+          accessible={true}
+          accessibilityLabel="Start Chatting"
+          accessibilityHint="Allows you to start chatting with other users"
+          accessibilityRole='button'
           onPress={() => navigation.navigate('Chat', { name, backgroundColor })}
-          style={{ width: '88%', height: 50, marginTop: 20, backgroundColor: '#333', padding: 10, borderRadius: 44 }}
+          style={{ width: '88%', height: 50, marginTop: 20, backgroundColor: '#333', padding: 10, marginBottom: 25, borderRadius: 44 }}
         >
           <Text style={{ color: 'white', textAlign: 'center', fontSize: 20 }}>Start Chating</Text>
         </TouchableOpacity>
@@ -61,7 +67,15 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   inputContainer: {
-    flex: 1, width: '90%', padding: 10, marginBottom: 40, height: '40%', justifyContent: 'center', alignItems: 'center', backgroundColor: 'white', shadowColor: '#333',
+    flex: 1,
+    width: '90%',
+    padding: 5,
+    marginBottom: 40,
+    height: 'fit-content',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    shadowColor: '#333',
     shadowOffset: { width: 10, height: 10 }
   },
   textInput: {
