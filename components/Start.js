@@ -1,15 +1,27 @@
 import React, { useState } from 'react'
-import { TextInput, Text, View, StyleSheet, ImageBackground, TouchableOpacity } from 'react-native'
+import { TextInput, Text, View, StyleSheet, ImageBackground, TouchableOpacity, Alert } from 'react-native'
+import { getAuth, signInAnonymously } from "firebase/auth";
+
+
 
 const Start = ({ navigation }) => {
   const [name, setName] = useState('');
   const [backgroundColor, setBackgroundColor] = useState('');
+  const auth = getAuth();
 
+  const backgroundColorList = ['#5858', '#555555', '#000000', '#333'];
 
-  const backgroundColorList = [
-    '#5858', '#555555','#000000','#333'
-  ]
-
+  const signInUser = () => {
+    signInAnonymously(auth)
+      .then(result => {
+        navigation.navigate("Chat", {userID: result.user.uid, name, backgroundColor});
+        Alert.alert("Signed in Successfully!");
+      })
+      .catch((error) => {
+        Alert.alert("Unable to sign in, try later again.");
+        // throw new Error(error);
+      })
+  }
 
   return (
     <ImageBackground
@@ -49,8 +61,8 @@ const Start = ({ navigation }) => {
           accessibilityLabel="Start Chatting"
           accessibilityHint="Allows you to start chatting with other users"
           accessibilityRole='button'
-          onPress={() => navigation.navigate('Chat', { name, backgroundColor })}
-          style={{ width: '88%', height: 50, marginTop: 20, backgroundColor: '#333', padding: 10, marginBottom: 25, borderRadius: 44 }}
+          onPress={signInUser}
+          style={styles.enterChatButton}
         >
           <Text style={{ color: 'white', textAlign: 'center', fontSize: 20 }}>Start Chating</Text>
         </TouchableOpacity>
@@ -63,27 +75,33 @@ const Start = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center'
   },
   inputContainer: {
-    flex: 1,
-    width: '90%',
-    padding: 5,
-    marginBottom: 40,
-    height: 'fit-content',
-    justifyContent: 'center',
+    flexBasis: 275,
+    flex: 0,
+    margin: 15,
+    padding: 10,
+    backgroundColor: "#CCC",
     alignItems: 'center',
-    backgroundColor: 'white',
-    shadowColor: '#333',
-    shadowOffset: { width: 10, height: 10 }
+    justifyContent: 'center',
   },
   textInput: {
-    width: "88%",
+    width: '88%',
+    height: 50,
     padding: 15,
     borderWidth: 1,
     marginTop: 15,
-    marginBottom: 15
+    marginBottom: 15,
+    borderWidth: 2,
+  },
+  enterChatButton: {
+    width: '88%',
+    height: 50,
+    marginTop: 20,
+    backgroundColor: '#333',
+    padding: 10,
+    marginBottom: 25,
+    borderRadius: 44
   }
 })
 

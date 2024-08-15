@@ -1,13 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, FlatList, Platform } from 'react-native';
 import { Bubble, GiftedChat } from 'react-native-gifted-chat';
 
-const Chat = ({ route, navigation }) => {
-  const [messages, setMessages] = useState([]);
-  const { name, backgroundColor } = route.params;
+import { collection, addDoc, onSnapshot, query, where, orderBy } from "firebase/firestore";
 
-  // Set the title and background color for the Chat screen
+
+
+const Chat = ({ db, route, navigation }) => {
+  const [messages, setMessages] = useState([]);
+
+  // Get the name, background color and user ID from the route
+  const { name, backgroundColor, userID } = route.params;
+
+
   useEffect(() => {
+    // Set the title and header style
     navigation.setOptions({
       title: name,
       headerStyle: {
@@ -18,34 +25,32 @@ const Chat = ({ route, navigation }) => {
         fontWeight: 'bold'
       }
     });
-  }, []);
+    // Fetch messages from Firestore
+    const q = query(collection(db, "messages"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const messages = querySnapshot.docs.map((doc) => {
+        const firebaseData = doc.data();
+        const data = {
+          _id: doc.id,
+          text: '',
+          createdAt: new Date(doc.data().createdAt.toMillis()),
+          ...firebaseData
+        };
+        return data;
+      });
+      setMessages(messages);
+    });
 
-  useEffect(() => {
-    setMessages([
-      {
-        _id: 1,
-        text: "You’ve entered the chat.",
-        createdAt: new Date(),
-        system: true,
-      },
-      {
-        _id: 2,
-        text: 'Hello developer!',
-        createdAt: new Date(),
-        user: {
-          _id: 3,
-          name: 'React Native',
-          avatar: 'https://www.nodemma.com/_next/image?url=%2Fhero-image.png&w=384&q=75'
-        }
-      },
-    ]);
+    // Unsubscribe from the snapshot when no longer in use "Clean up"
+    return () => {
+      if (unsubscribe) unsubscribe();
+    }
   }, []);
 
   // Send a message
   const onSend = useCallback((messages = []) => {
-    setMessages(previousMessages =>
-      GiftedChat.append(previousMessages, messages),
-    )
+    addDoc(collection(db, "messages"), messages[0]);
+    
   }, []);
 
   // Render the chat bubble setting the background color based on the user
@@ -70,11 +75,13 @@ const Chat = ({ route, navigation }) => {
         renderBubble={renderBubble}
         onSend={messages => onSend(messages)}
         user={{
-          _id: 1
+          _id: userID,
+          name,
         }}
       />
       {/*  Keyboard adjustment for Android and iOS*/}
-       { Platform.OS === 'android' ? <KeyboardAvoidingView behavior="height" /> : null }
+      {Platform.OS === 'android' ? <KeyboardAvoidingView behavior="height" /> : null}
+      {Platform.OS === 'ios' ? <KeyboardAvoidingView behavior="padding" /> : null}
     </View>
   )
 }
