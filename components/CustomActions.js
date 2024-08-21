@@ -5,7 +5,7 @@ import { useActionSheet } from '@expo/react-native-action-sheet';
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import * as MediaLibrary from 'expo-media-library';
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { Audio } from "expo-av";
 
 
