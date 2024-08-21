@@ -40,6 +40,7 @@ const App = () => {
   // Get the Storage handler service
   const storage = getStorage(app);
 
+  // Handle network connection detection
   useEffect(() => {
     if (connectionStatus.isConnected === false) {
       Alert.alert('No Internet Connection');
