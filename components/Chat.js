@@ -1,26 +1,24 @@
-import React, { useState, useEffect, useCallback } from 'react'
-import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
-import { Bubble, GiftedChat, InputToolbar } from 'react-native-gifted-chat';
+import { useState, useEffect, useCallback } from "react";
+import { StyleSheet, View, Platform, KeyboardAvoidingView, Text, TouchableOpacity } from 'react-native';
+import { Bubble, GiftedChat, InputToolbar } from "react-native-gifted-chat";
+import { collection, addDoc, onSnapshot, query, orderBy } from "firebase/firestore";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import MapView from 'react-native-maps';
+import CustomActions from './CustomActions';
+import { Audio } from "expo-av";
 
-import { collection, addDoc, onSnapshot, query, where, orderBy } from "firebase/firestore";
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
-const Chat = ({ db, route, navigation, isConnected }) => {
+const Chat = ({ db, route, navigation, isConnected, storage }) => {
   const [messages, setMessages] = useState([]);
 
   // Get the name, background color and user ID from the route
   const { name, backgroundColor, userID } = route.params;
 
   let unsubscribe;
+  let soundObject
 
   useEffect(() => {
-    if (isConnected === true) {
-      // unregister current onSnapshot() listener to avoid registering multiple listeners when
-      // useEffect code is re-executed.
-      if (unsubscribe) unsubscribe(); 
-      unsubscribe = null;
-  
     // Set the title and header style
     navigation.setOptions({
       title: name,
@@ -33,17 +31,30 @@ const Chat = ({ db, route, navigation, isConnected }) => {
       }
     });
 
+    if (isConnected === true) {
+      // unregister current onSnapshot() listener to avoid registering multiple listeners when
+      // useEffect code is re-executed.
+      if (unsubscribe) unsubscribe();
+      unsubscribe = null;
+
       // Fetch messages from Firestore
       const q = query(collection(db, "messages"), orderBy("createdAt", "desc"));
+
       unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const messages = querySnapshot.docs.map((doc) => {
-          const firebaseData = doc.data();
+        const messages = querySnapshot.docs.map((docs) => {
+          const firebaseData = docs.data();
           const data = {
-            _id: doc.id,
-            text: '',
-            createdAt: new Date(doc.data().createdAt.toMillis()),
+            _id: docs.id,
+            text: "",
+            createdAt: new Date(),
             ...firebaseData
           };
+          if (!firebaseData.system) {
+            data.user = {
+              ...firebaseData.user,
+              name: firebaseData.user.name
+            };
+          }
           return data;
         });
         // Store the messages in AsyncStorage
@@ -55,8 +66,10 @@ const Chat = ({ db, route, navigation, isConnected }) => {
     // Unsubscribe from the snapshot when no longer in use "Clean up"
     return () => {
       if (unsubscribe) unsubscribe();
+      if (soundObject) soundObject.unloadAsync();
     }
   }, [isConnected]);
+
 
   // Store the messages in AsyncStorage
   const storeData = async (value) => {
@@ -97,7 +110,59 @@ const Chat = ({ db, route, navigation, isConnected }) => {
   const renderInputToolbar = (props) => {
     if (isConnected) return <InputToolbar {...props} />;
     else return null;
-   }
+  }
+
+  // Custom actions
+  const renderCustomActions = (props) => {
+    return <CustomActions userID={userID} storage={storage}  {...props} />;
+  };
+
+  // Render the custom view
+  const renderCustomView = (props) => {
+    const { currentMessage } = props;
+    if (currentMessage.location) {
+      return (
+        <MapView
+          style={{
+            width: 150,
+            height: 100,
+            borderRadius: 13,
+            margin: 3
+          }}
+          region={{
+            latitude: currentMessage.location.latitude,
+            longitude: currentMessage.location.longitude,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          }}
+        />
+      );
+    }
+    return null;
+  }
+
+  // Render the Audio Bubble
+  const renderAudioBubble = (props) => {
+    return <View {...props} style={{width: 200}}>
+      <TouchableOpacity
+        style={{
+          backgroundColor: "#FF0", width: 190,  borderRadius: 10, margin: 5
+        }}
+        onPress={async () => {
+          const { sound } = await Audio.Sound.createAsync({
+            uri:
+              props.currentMessage.audio
+          });
+          soundObject = sound
+          await sound.playAsync();
+        }}>
+        <Text style={{
+          textAlign: "center", color: 'black', padding: 5,
+        }}>play</Text>
+      </TouchableOpacity>
+    </View>
+  }
+
 
   return (
     <View style={styles.container}>
@@ -105,10 +170,14 @@ const Chat = ({ db, route, navigation, isConnected }) => {
         messages={messages}
         renderBubble={renderBubble}
         renderInputToolbar={renderInputToolbar}
+        renderActions={renderCustomActions}
+        renderCustomView={renderCustomView}
         onSend={messages => onSend(messages)}
+        isTyping={false}
+        renderMessageAudio={renderAudioBubble}
         user={{
           _id: userID,
-          name, 
+          name,
           backgroundColor,
           isConnected
         }}
