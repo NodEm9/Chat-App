@@ -195,6 +195,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     fontSize: 20,
+    backgroundColor: '#a9a9a9'
   }
 });
 
